@@ -1,0 +1,81 @@
+import http.server
+import socket
+import socketserver
+import threading
+import requests
+import time
+
+# Proxy Server Configuration
+LOG_FILE = "proxy_log.txt"
+
+def get_available_port(start_port: int, max_tries: int = 50) -> int:
+    """Finds an available TCP port starting from start_port."""
+    port = start_port
+    for _ in range(max_tries):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                sock.bind(("", port))
+                return port
+            except OSError:
+                port += 1
+    raise RuntimeError("No available port found.")
+
+PROXY_PORT = get_available_port(8080)
+
+class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    """Custom HTTP Proxy Handler that logs requests"""
+
+    def do_GET(self):
+        """Handle GET requests through the proxy"""
+        self.log_request_details()
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Proxy Request Received.")
+
+    def log_request_details(self):
+        """Logs request details to a file"""
+        client_ip = self.client_address[0]
+        requested_url = self.path
+
+        log_entry = f"Client IP: {client_ip} -> Request: {requested_url}\n"
+        print(log_entry)  # Print to console
+        with open(LOG_FILE, "a") as log_file:
+            log_file.write(log_entry)
+
+class ReusableTCPServer(socketserver.TCPServer):
+    allow_reuse_address = True
+
+# Start the Proxy Server in a Thread
+def start_proxy():
+    """Starts an HTTP proxy server"""
+    with ReusableTCPServer(("", PROXY_PORT), ProxyHTTPRequestHandler) as server:
+        print(f"[*] Proxy Server Running on port {PROXY_PORT}")
+        server.serve_forever()
+
+# Simulated Attacker Using the Proxy
+def attack_simulation():
+    """Simulates an attacker sending requests through the proxy"""
+    time.sleep(2)  # Wait for the proxy server to start
+    proxy_url = f"http://127.0.0.1:{PROXY_PORT}"
+    proxies = {"http": proxy_url, "https": proxy_url}
+    
+    target_url = "http://example.com"
+    print("[⚠] Simulating attack: Sending request through proxy...")
+
+    try:
+        response = requests.get(target_url, proxies=proxies)
+        print(f"[✔] Response Status: {response.status_code}")
+    except Exception as e:
+        print(f"[❌] Error: {e}")
+
+# Run Proxy and Attack Simulation in Separate Threads
+if __name__ == "__main__":
+    proxy_thread = threading.Thread(target=start_proxy, daemon=True)
+    proxy_thread.start()
+    
+    attack_simulation()
+    
+    # Keep the proxy running
+    while True:
+        time.sleep(1)
