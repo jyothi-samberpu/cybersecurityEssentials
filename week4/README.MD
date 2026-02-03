@@ -19,16 +19,16 @@ Compile: python dns.py
 # OUTPUT :
 
 --- Normal DNS Resolution ---
-[✅] Resolving example.com: 93.184.216.34
+[✅] Resolving example.com:
 
 --- Simulating DNS Cache Poisoning Attack ---
-[⚠️] DNS Cache Poisoned! example.com now resolves to 192.168.1.100
+[⚠️] DNS Cache Poisoned! example.com now resolves to
 
 --- Post-Attack Resolution ---
-[✅] Resolving example.com: 192.168.1.100
+[✅] Resolving example.com:
 
 --- Cache Expiring... ---
 [♻️] DNS Cache Restored!
 
 --- Final DNS Resolution ---
-[✅] Resolving example.com: 93.184.216.34
+[✅] Resolving example.com:
